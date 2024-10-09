@@ -51,12 +51,11 @@ contract ScratchTicket is ERC721URIStorage, Ownable {
     error ScratchTicket__InvalidPayouts();
     error ScratchTicket__InvalidExpiration();
     error ScratchTicket__StillActive();
-    error ScratchTicket__NotOwner();
+    error ScratchTicket__NotTicketOwner();
     error ScratchTicket__AlreadyScratched();
     error ScratchTicket__AlreadyClaimed();
     error ScratchTicket__NotScratched();
     error ScratchTicket__Expired();
-    error ScratchTicket__NoReward();
 
     /*----------  EVENTS ------------------------------------------------*/
 
@@ -122,7 +121,7 @@ contract ScratchTicket is ERC721URIStorage, Ownable {
     }
 
     function scratch(uint256 tokenId) external isInitialized {
-        if (ownerOf(tokenId) != msg.sender) revert ScratchTicket__NotOwner();
+        if (ownerOf(tokenId) != msg.sender) revert ScratchTicket__NotTicketOwner();
         if (tokenId_Ticket[tokenId].scratched) revert ScratchTicket__AlreadyScratched();
 
         tokenId_Ticket[tokenId].scratched = true;
@@ -137,16 +136,14 @@ contract ScratchTicket is ERC721URIStorage, Ownable {
     }
 
     function claim(uint256 tokenId) external isInitialized {
-        if (ownerOf(tokenId) != msg.sender) revert ScratchTicket__NotOwner();
         if (!tokenId_Ticket[tokenId].scratched) revert ScratchTicket__NotScratched();
         if (block.timestamp > expiration) revert ScratchTicket__Expired();
         if (tokenId_Ticket[tokenId].claimed) revert ScratchTicket__AlreadyClaimed();
-        if (tokenId_Ticket[tokenId].outcome == 0) revert ScratchTicket__NoReward();
 
         uint256 reward = tokenId_Ticket[tokenId].outcome;
         tokenId_Ticket[tokenId].claimed = true;
 
-        IERC20(payoutToken).transfer(msg.sender, reward);
+        IERC20(payoutToken).transfer(ownerOf(tokenId), reward);
         emit ScratchTicket__Claimed(tokenId, reward);
     }
 
@@ -205,6 +202,20 @@ contract ScratchTicket is ERC721URIStorage, Ownable {
         ticketsMinted += 1;
 
         emit ScratchTicket__Minted(newTicketId, recipient);
+    }
+
+    /*----------  VIEW FUNCTIONS  ---------------------------------*/
+
+    function getTicket(uint256 tokenId) external view returns (Ticket memory) {
+        return tokenId_Ticket[tokenId];
+    }
+
+    function getAmounts() external view returns (uint256[] memory) {
+        return amounts;
+    }
+
+    function getPayouts() external view returns (uint256[] memory) {
+        return payouts;
     }
 
 }
