@@ -19,7 +19,6 @@ contract ScratchTicketFactory is Ownable {
     uint256 public constant NAME_MAX_LENGTH = 80; // Max length of meme token name
     uint256 public constant SYMBOL_MAX_LENGTH = 8; // Max length of meme token symbol
     uint256 public constant MAX_FEE = 1000; // Max fee for treasury
-    uint256 public constant DIVISOR = 10000; // Divisor for fee calculation
 
     /*----------  STATE VARIABLES  --------------------------------------*/
 
@@ -29,11 +28,23 @@ contract ScratchTicketFactory is Ownable {
     uint256 public index;
     mapping(uint256 => address) public index_Ticket;
 
+    /*----------  ERRORS ------------------------------------------------*/
+
+    error ScratchTicketFactory__InvalidName();
+    error ScratchTicketFactory__InvalidSymbol();
+    error ScratchTicketFactory__FeeTooHigh();
+
     /*----------  EVENTS ------------------------------------------------*/
 
     event ScratchTicketFactory__ScratchTicketDeployed(address indexed creator, address indexed ticket);
+    event ScratchTicketFactory__TreasurySet(address indexed treasury);
+    event ScratchTicketFactory__FeeSet(uint256 indexed fee);
 
     /*----------  FUNCTIONS ---------------------------------------------*/
+
+    constructor() {
+        treasury = msg.sender;
+    }
 
     function createScratchTicket(
         string memory name,
@@ -47,12 +58,13 @@ contract ScratchTicketFactory is Ownable {
     ) external returns (address) {
         if (bytes(name).length == 0) revert ScratchTicketFactory__InvalidName();
         if (bytes(symbol).length == 0) revert ScratchTicketFactory__InvalidSymbol();
-        if (bytes(name).length > NAME_MAX_LENGTH) revert ScratchTicketFactory__InvalidName(name);
-        if (bytes(symbol).length > SYMBOL_MAX_LENGTH) revert ScratchTicketFactory__InvalidSymbol(symbol);
+        if (bytes(name).length > NAME_MAX_LENGTH) revert ScratchTicketFactory__InvalidName();
+        if (bytes(symbol).length > SYMBOL_MAX_LENGTH) revert ScratchTicketFactory__InvalidSymbol();
 
         address ticket = address(new ScratchTicket(
             name, 
             symbol, 
+            address(this),
             paymentToken, 
             payoutToken, 
             ticketPrice, 
@@ -62,6 +74,15 @@ contract ScratchTicketFactory is Ownable {
         ));
         index++;
         index_Ticket[index] = ticket;
+
+        uint256 cost = ScratchTicket(ticket).totalDeposit();
+
+        IERC20(payoutToken).transferFrom(msg.sender, address(this), cost);
+        IERC20(payoutToken).safeApprove(ticket, 0);
+        IERC20(payoutToken).safeApprove(ticket, cost);
+        ScratchTicket(ticket).initialize();
+        ScratchTicket(ticket).transferOwnership(msg.sender);
+        
         emit ScratchTicketFactory__ScratchTicketDeployed(msg.sender, ticket);
         return ticket;
     }
@@ -74,7 +95,7 @@ contract ScratchTicketFactory is Ownable {
     }
 
     function setFee(uint256 _fee) external onlyOwner {
-        if (_fee > MAX_FEE) revert ScratchTicketFactory__FeeTooHigh(_fee);
+        if (_fee > MAX_FEE) revert ScratchTicketFactory__FeeTooHigh();
         fee = _fee;
         emit ScratchTicketFactory__FeeSet(_fee);
     }
