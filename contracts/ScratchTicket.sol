@@ -2,10 +2,13 @@
 pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract ScratchTicket is ERC721URIStorage, Ownable {
+    using SafeERC20 for IERC20;
+
+    /*----------  STATE VARIABLES  --------------------------------------*/
 
     struct Ticket {
         bool scratched;
@@ -27,15 +30,12 @@ contract ScratchTicket is ERC721URIStorage, Ownable {
 
     mapping(uint256 => Ticket) public tokenId_Ticket;
 
-    event ScratchTicket__Minted(uint256 tokenId, address owner);
-    event ScratchTicket__Scratched(uint256 tokenId, uint256 outcome);
-    event ScratchTicket__Claimed(uint256 tokenId, uint256 reward);
-    event ScratchTicket__Bought(address recipient, uint256 amount);
-    event ScratchTicket__OwnerMinted(address recipient, uint256 amount);
+    /*----------  ERRORS ------------------------------------------------*/
 
     error ScratchTicket__InvalidAmounts();
     error ScratchTicket__InvalidPayouts();
     error ScratchTicket__InvalidExpiration();
+    error ScratchTicket__StillActive();
     error ScratchTicket__NotOwner();
     error ScratchTicket__AlreadyScratched();
     error ScratchTicket__AlreadyClaimed();
@@ -43,14 +43,24 @@ contract ScratchTicket is ERC721URIStorage, Ownable {
     error ScratchTicket__Expired();
     error ScratchTicket__NoReward();
 
+    /*----------  EVENTS ------------------------------------------------*/
+
+    event ScratchTicket__Minted(uint256 tokenId, address owner);
+    event ScratchTicket__Scratched(uint256 tokenId, uint256 outcome);
+    event ScratchTicket__Claimed(uint256 tokenId, uint256 reward);
+    event ScratchTicket__Bought(address recipient, uint256 amount);
+    event ScratchTicket__OwnerMinted(address recipient, uint256 amount);
+
+    /*----------  FUNCTIONS  --------------------------------------------*/
+
     constructor(
         string memory name,
         string memory symbol,
         address _paymentToken,
         address _payoutToken,
         uint256 _ticketPrice,
-        uint256[] memory _payouts,
         uint256[] memory _amounts,
+        uint256[] memory _payouts,
         uint256 _expiration
     ) ERC721(name, symbol) {
         if (_amounts.length == 0) revert ScratchTicket__InvalidAmounts();
@@ -77,13 +87,6 @@ contract ScratchTicket is ERC721URIStorage, Ownable {
             _mint(recipient);
         }
         emit ScratchTicket__Bought(recipient, amount);
-    }
-
-    function mint(address recipient, uint256 amount) external onlyOwner {
-        for (uint256 i = 0; i < amount; i++) {
-            _mint(recipient);
-        }
-        emit ScratchTicket__OwnerMinted(recipient, amount);
     }
 
     function scratch(uint256 tokenId) external {
@@ -116,6 +119,28 @@ contract ScratchTicket is ERC721URIStorage, Ownable {
         emit ScratchTicket__Claimed(tokenId, reward);
     }
 
+    /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
+
+    function mint(address recipient, uint256 amount) external onlyOwner {
+        for (uint256 i = 0; i < amount; i++) {
+            _mint(recipient);
+        }
+        emit ScratchTicket__OwnerMinted(recipient, amount);
+        IERC20(paymentToken).transferFrom(msg.sender, address(this), amount * ticketPrice);
+    }
+
+    function withdraw(address recipient, address token) external onlyOwner {
+        if (token == payoutToken) {
+            if (block.timestamp < expiration) revert ScratchTicket__StillActive();
+            uint256 balance = IERC20(payoutToken).balanceOf(address(this));
+            IERC20(payoutToken).transfer(recipient, balance);
+        } else {
+            uint256 balance = IERC20(token).balanceOf(address(this));
+            IERC20(token).transfer(recipient, balance);
+        }
+    }
+
+    /*----------  INTERNAL FUNCTIONS  ---------------------------------*/
 
     function _fulfillRandomWords(uint256 tokenId,uint256 randomWords) internal {
         uint256 cumulativeTickets = 0;
