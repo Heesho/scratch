@@ -56,6 +56,7 @@ contract ScratchTicket is ERC721URIStorage, Ownable {
     error ScratchTicket__AlreadyClaimed();
     error ScratchTicket__NotScratched();
     error ScratchTicket__Expired();
+    error ScratchTicket__MaxSupplyReached();
 
     /*----------  EVENTS ------------------------------------------------*/
 
@@ -195,7 +196,7 @@ contract ScratchTicket is ERC721URIStorage, Ownable {
     }
 
     function _mint(address recipient) internal {
-        if (totalTickets == 0) revert ScratchTicket__InvalidAmounts();
+        if (totalTickets == 0) revert ScratchTicket__MaxSupplyReached();
 
         uint256 newTicketId = ticketsMinted + 1;
         _safeMint(recipient, newTicketId);

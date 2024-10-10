@@ -9,6 +9,7 @@ const AddressZero = "0x0000000000000000000000000000000000000000";
 const pointOne = convert("0.1", 18);
 const one = convert("1", 18);
 const ten = convert("10", 18);
+const oneHundred = convert("100", 18);
 const oneThousand = convert("1000", 18);
 const tenThousand = convert("10000", 18);
 
@@ -54,7 +55,7 @@ describe("local: test0", function () {
         base.address,
         one,
         [100, 10, 1],
-        [0, 1, 100],
+        [0, one, oneHundred],
         1729510478
       );
 
@@ -434,5 +435,148 @@ describe("local: test0", function () {
     console.log("******************************************************");
     console.log(await ticket0.getAmounts());
     console.log(await ticket0.getPayouts());
+  });
+
+  it("User3 buys 10 ticket0", async function () {
+    console.log("******************************************************");
+    await base.connect(user3).approve(ticket0.address, ten);
+    await ticket0.connect(user3).buy(user3.address, 10);
+  });
+
+  it("User3 scratches ticket", async function () {
+    console.log("******************************************************");
+    await ticket0.connect(user3).scratch(82);
+    await ticket0.connect(user3).scratch(83);
+    await ticket0.connect(user3).scratch(84);
+    await ticket0.connect(user3).scratch(85);
+    await ticket0.connect(user3).scratch(86);
+    await ticket0.connect(user3).scratch(87);
+    await ticket0.connect(user3).scratch(88);
+    await ticket0.connect(user3).scratch(89);
+    await ticket0.connect(user3).scratch(90);
+    await ticket0.connect(user3).scratch(91);
+  });
+
+  it("User3  claims ticket", async function () {
+    console.log("******************************************************");
+    await ticket0.connect(user3).claim(82);
+    await ticket0.connect(user3).claim(83);
+    await ticket0.connect(user3).claim(84);
+    await ticket0.connect(user3).claim(85);
+    await ticket0.connect(user3).claim(86);
+    await ticket0.connect(user3).claim(87);
+    await ticket0.connect(user3).claim(88);
+    await ticket0.connect(user3).claim(89);
+    await ticket0.connect(user3).claim(90);
+    await ticket0.connect(user3).claim(91);
+  });
+
+  it("View ticket results", async function () {
+    console.log("******************************************************");
+    console.log(await ticket0.getAmounts());
+    console.log(await ticket0.getPayouts());
+  });
+
+  it("User3 buys 10 ticket0", async function () {
+    console.log("******************************************************");
+    await base.connect(user3).approve(ticket0.address, ten);
+    await ticket0.connect(user3).buy(user3.address, 10);
+  });
+
+  it("User3 scratches ticket", async function () {
+    console.log("******************************************************");
+    await ticket0.connect(user3).scratch(92);
+    await ticket0.connect(user3).scratch(93);
+    await ticket0.connect(user3).scratch(94);
+    await ticket0.connect(user3).scratch(95);
+    await ticket0.connect(user3).scratch(96);
+    await ticket0.connect(user3).scratch(97);
+    await ticket0.connect(user3).scratch(98);
+    await ticket0.connect(user3).scratch(99);
+    await ticket0.connect(user3).scratch(100);
+    await ticket0.connect(user3).scratch(101);
+  });
+
+  it("User3  claims ticket", async function () {
+    console.log("******************************************************");
+    await ticket0.connect(user3).claim(92);
+    await ticket0.connect(user3).claim(93);
+    await ticket0.connect(user3).claim(94);
+    await ticket0.connect(user3).claim(95);
+    await ticket0.connect(user3).claim(96);
+    await ticket0.connect(user3).claim(97);
+    await ticket0.connect(user3).claim(98);
+    await ticket0.connect(user3).claim(99);
+    await ticket0.connect(user3).claim(100);
+    await ticket0.connect(user3).claim(101);
+  });
+
+  it("User3 buys 10 ticket0", async function () {
+    console.log("******************************************************");
+    await base.connect(user3).approve(ticket0.address, ten);
+    await ticket0.connect(user3).buy(user3.address, 10);
+  });
+
+  it("User3 scratches ticket", async function () {
+    console.log("******************************************************");
+    await ticket0.connect(user3).scratch(102);
+    await ticket0.connect(user3).scratch(103);
+    await ticket0.connect(user3).scratch(104);
+    await ticket0.connect(user3).scratch(105);
+    await ticket0.connect(user3).scratch(106);
+    await ticket0.connect(user3).scratch(107);
+    await ticket0.connect(user3).scratch(108);
+    await ticket0.connect(user3).scratch(109);
+    await ticket0.connect(user3).scratch(110);
+    await ticket0.connect(user3).scratch(111);
+  });
+
+  it("User3  claims ticket", async function () {
+    console.log("******************************************************");
+    await ticket0.connect(user3).claim(102);
+    await ticket0.connect(user3).claim(103);
+    await ticket0.connect(user3).claim(104);
+    await ticket0.connect(user3).claim(105);
+    await ticket0.connect(user3).claim(106);
+    await ticket0.connect(user3).claim(107);
+    await ticket0.connect(user3).claim(108);
+    await ticket0.connect(user3).claim(109);
+    await ticket0.connect(user3).claim(110);
+    await ticket0.connect(user3).claim(111);
+  });
+
+  it("View ticket results", async function () {
+    console.log("******************************************************");
+    console.log(await ticket0.getAmounts());
+    console.log(await ticket0.getPayouts());
+  });
+
+  it("User1 buys 1 ticket0", async function () {
+    console.log("******************************************************");
+    await base.connect(user1).approve(ticket0.address, one);
+    await expect(
+      ticket0.connect(user1).buy(user1.address, 1)
+    ).to.be.revertedWith("ScratchTicket__MaxSupplyReached");
+  });
+
+  it("User0 withdraws funds", async function () {
+    console.log("******************************************************");
+    await expect(
+      ticket0.connect(user0).withdraw(user0.address, base.address)
+    ).to.be.revertedWith("ScratchTicket__StillActive");
+  });
+
+  it("Forward 1 month", async function () {
+    console.log("******************************************************");
+    await network.provider.send("evm_increaseTime", [3600 * 24 * 60]);
+    await network.provider.send("evm_mine");
+  });
+
+  it("User0 withdraws funds", async function () {
+    console.log("******************************************************");
+    console.log("Total Deposit: ", await ticket0.totalDeposit());
+    console.log("User0 Balance: ", divDec(await base.balanceOf(user0.address)));
+    await ticket0.connect(user0).withdraw(user0.address, base.address);
+    console.log("User0 Balance: ", divDec(await base.balanceOf(user0.address)));
   });
 });
